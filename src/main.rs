@@ -1,3 +1,4 @@
+use albali::models::authorization::AuthorizationResponse;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::engine::Engine as _;
 use reqwest;
@@ -22,10 +23,26 @@ struct Artist {
 
 #[tokio::main]
 async fn main() {
-    get_access_token().await;
+    let result = get_access_token().await;
+
+    // Get artist with spotify id 0OdUWJ0sBjDrqHygGUXeCF
+    let client = reqwest::Client::new();
+    let res = client
+        .get("https://api.spotify.com/v1/artists/0OdUWJ0sBjDrqHygGUXeCF")
+        .header(
+            AUTHORIZATION,
+            format!("Bearer {}", result.get_access_token()),
+        )
+        .send()
+        .await
+        .unwrap();
+
+    let artist: Artist = res.json().await.unwrap();
+
+    println!("{:#?}", artist);
 }
 
-async fn get_access_token() {
+async fn get_access_token() -> AuthorizationResponse {
     // Load dotenv
     dotenv::dotenv().ok();
 
@@ -50,7 +67,5 @@ async fn get_access_token() {
         .await
         .unwrap();
 
-    // Get the response
-    let body = res.text().await.unwrap();
-    println!("body = {:?}", body);
+    res.json().await.unwrap()
 }
